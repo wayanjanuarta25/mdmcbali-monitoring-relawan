@@ -18,13 +18,9 @@
     "next": "^15.5.25",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-<<<<<<< Updated upstream
-    "next": "15.5.9"
-=======
     "recharts": "^3.10.1",
     "tailwind-merge": "^3.7.0",
     "xlsx": "^0.18.5"
->>>>>>> Stashed changes
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
