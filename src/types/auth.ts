@@ -16,10 +16,12 @@ export type UserProfile = {
   id: string;
   email: string;
   full_name: string;
+  username?: string | null;
   role: UserRole;
   district_id: string | null;
   phone?: string | null;
   avatar_url?: string | null;
+  province?: string | null;
   is_active: boolean;
   last_login_at?: string | null;
   created_at: string;
@@ -35,4 +37,8 @@ export const ROLE_HOME: Record<UserRole, string> = {
 
 export function isUserRole(value: unknown): value is UserRole {
   return typeof value === "string" && USER_ROLES.includes(value as UserRole);
+}
+
+export function isValidUsername(username: string): boolean {
+  return /^[a-z0-9_]{5,30}$/.test(username);
 }

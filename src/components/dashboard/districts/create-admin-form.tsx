@@ -135,6 +135,27 @@ export function CreateAdminForm({
             <p className="text-[11px] text-slate-400">Minimal 3 karakter, sertakan gelar jika ada.</p>
           </div>
 
+          {/* USERNAME */}
+          <div className="space-y-1.5">
+            <label htmlFor="username" className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Username Admin <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-xs text-slate-400 font-bold">@</span>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                placeholder={`admin_${districtName.toLowerCase().replace(/\s+/g, "")}`}
+                required
+                minLength={5}
+                maxLength={30}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 pl-10 pr-4 text-xs font-mono font-medium text-slate-900 outline-none transition focus:border-[#124E8C] focus:bg-white focus:ring-2 focus:ring-[#124E8C]/20"
+              />
+            </div>
+            <p className="text-[11px] text-slate-400">Minimal 5-30 karakter (huruf kecil, angka, dan underscore).</p>
+          </div>
+
           {/* EMAIL */}
           <div className="space-y-1.5">
             <label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-slate-700">

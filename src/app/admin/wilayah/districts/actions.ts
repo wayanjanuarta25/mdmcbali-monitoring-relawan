@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
+import { isValidUsername } from "@/types/auth";
 
 export type ActionState = {
   success?: boolean;
@@ -29,6 +30,7 @@ export async function createAdminDaerahAction(
     const password = formData.get("password");
     const phone = formData.get("phone");
     const districtId = formData.get("district_id");
+    const username = formData.get("username")?.toString().trim().toLowerCase() || "";
 
     // Validation checks
     if (typeof fullName !== "string" || fullName.trim().length < 3) {
@@ -36,6 +38,15 @@ export async function createAdminDaerahAction(
         success: false,
         error: "Nama lengkap wajib diisi minimal 3 karakter.",
       };
+    }
+
+    if (username) {
+      if (!isValidUsername(username)) {
+        return {
+          success: false,
+          error: "Username minimal 5-30 karakter (hanya huruf kecil, angka, dan underscore).",
+        };
+      }
     }
 
     if (typeof email !== "string" || !EMAIL_REGEX.test(email.trim())) {
@@ -68,16 +79,36 @@ export async function createAdminDaerahAction(
     const normalizedPhone = phone.trim();
     const normalizedFullName = fullName.trim();
 
+    const adminAuthClient = createAdminClient();
+
+    // Check duplicate username if provided
+    if (username) {
+      const { data: duplicate } = await adminAuthClient
+        .from("profiles")
+        .select("id")
+        .eq("username", username)
+        .maybeSingle();
+
+      if (duplicate) {
+        return {
+          success: false,
+          error: "Username tersebut sudah digunakan oleh akun lain.",
+        };
+      }
+    }
+
     let createdUser: { id: string; email?: string } | null = null;
 
     // 2. Create user using Supabase Admin Client auth.admin.createUser()
-    const adminAuthClient = createAdminClient();
     const { data: authData, error: authError } =
       await adminAuthClient.auth.admin.createUser({
         email: normalizedEmail,
         password,
         email_confirm: true,
-        user_metadata: { full_name: normalizedFullName },
+        user_metadata: {
+          full_name: normalizedFullName,
+          username: username || undefined,
+        },
       });
 
     if (authError || !authData?.user) {
@@ -102,18 +133,23 @@ export async function createAdminDaerahAction(
     createdUser = authData.user;
 
     // 3. Upsert into public.profiles
-    const { error: profileError } = await adminAuthClient.from("profiles").upsert(
-      {
-        id: createdUser.id,
-        email: normalizedEmail,
-        full_name: normalizedFullName,
-        role: "ADMIN_DAERAH",
-        district_id: districtId,
-        phone: normalizedPhone,
-        is_active: true,
-      },
-      { onConflict: "id" },
-    );
+    const profilePayload: Record<string, unknown> = {
+      id: createdUser.id,
+      email: normalizedEmail,
+      full_name: normalizedFullName,
+      role: "ADMIN_DAERAH",
+      district_id: districtId,
+      phone: normalizedPhone,
+      is_active: true,
+    };
+
+    if (username) {
+      profilePayload.username = username;
+    }
+
+    const { error: profileError } = await adminAuthClient
+      .from("profiles")
+      .upsert(profilePayload, { onConflict: "id" });
 
     if (profileError) {
       return {

@@ -13,8 +13,12 @@ import {
   MapPin,
   ChevronRight,
   Bell,
+  UserCircle,
+  Settings,
+  LogOut,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { logout } from "@/app/login/actions";
 import type { UserRole } from "@/types/auth";
 
 interface SidebarProps {
@@ -65,6 +69,18 @@ export function Sidebar({ role, onItemClick }: SidebarProps) {
           label: "Laporan",
           icon: FileText,
           href: "/admin/wilayah/reports",
+          exact: false,
+        },
+        {
+          label: "Profile",
+          icon: UserCircle,
+          href: "/admin/wilayah/profile",
+          exact: false,
+        },
+        {
+          label: "Settings",
+          icon: Settings,
+          href: "/admin/wilayah/settings",
           exact: false,
         },
       ]
@@ -186,6 +202,19 @@ export function Sidebar({ role, onItemClick }: SidebarProps) {
             </Link>
           );
         })}
+
+        {/* LOGOUT BUTTON */}
+        <form action={logout} className="pt-2 mt-2 border-t border-white/10">
+          <button
+            type="submit"
+            className="group flex w-full items-center justify-between rounded-lg px-3.5 py-2.5 text-xs font-semibold text-rose-300 hover:bg-rose-950/40 hover:text-rose-200 transition-all duration-150 cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <LogOut className="size-4 text-rose-400 group-hover:scale-110 transition-transform" />
+              <span>Logout</span>
+            </div>
+          </button>
+        </form>
       </div>
 
       {/* FOOTER ACCESS INFO */}

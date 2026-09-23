@@ -48,17 +48,7 @@ export const getCurrentAuth = cache(async (): Promise<CurrentAuthData> => {
   const { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select(`
-      id,
-      email,
-      full_name,
-      role,
-      district_id,
-      phone,
-      avatar_url,
-      is_active,
-      last_login_at,
-      created_at,
-      updated_at,
+      *,
       districts (
         id,
         name,
@@ -88,10 +78,14 @@ export const getCurrentAuth = cache(async (): Promise<CurrentAuthData> => {
     id: profileData.id,
     email: profileData.email,
     full_name: profileData.full_name,
+    username:
+      ((profileData as { username?: string | null }).username) ||
+      (profileData.role === "ADMIN_WILAYAH_BALI" ? "admin_bali" : null),
     role: profileData.role,
     district_id: profileData.district_id,
     phone: profileData.phone,
     avatar_url: profileData.avatar_url,
+    province: ((profileData as { province?: string | null }).province) || "Bali",
     is_active: profileData.is_active,
     last_login_at: profileData.last_login_at,
     created_at: profileData.created_at,

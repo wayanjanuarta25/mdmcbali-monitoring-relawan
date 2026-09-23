@@ -29,9 +29,7 @@ export async function getMiddlewareAuth(request: NextRequest) {
   if (user) {
     const { data } = await supabase
       .from("profiles")
-      .select(
-        "id, email, full_name, role, district_id, phone, avatar_url, is_active, last_login_at, created_at, updated_at",
-      )
+      .select("*")
       .eq("id", user.id)
       .maybeSingle();
 

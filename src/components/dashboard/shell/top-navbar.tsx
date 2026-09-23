@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import Image from "next/image";
 import {
   Bell,
@@ -314,34 +315,38 @@ export function TopNavbar({
           {/* Profile Dropdown Menu */}
           {showProfileMenu && (
             <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl z-50 animate-in fade-in-50 slide-in-from-top-2 space-y-1">
-              <div className="border-b border-slate-100 px-3 py-2">
+              <div className="border-b border-slate-100 px-3 py-2 space-y-0.5">
                 <p className="text-xs font-bold text-[#0B1F3A] truncate">
                   {profile.full_name}
+                </p>
+                <p className="text-[10px] font-mono font-semibold text-[#124E8C] truncate">
+                  @{profile.username || "admin_bali"}
                 </p>
                 <p className="text-[10px] text-slate-400 truncate">{profile.email}</p>
               </div>
 
-              <button
-                onClick={() => {
-                  onTriggerToast("Profil Pengguna", `Email: ${profile.email}`);
-                  setShowProfileMenu(false);
-                }}
+              <Link
+                href={profile.role === "ADMIN_WILAYAH_BALI" ? "/admin/wilayah/profile" : "/admin/daerah/profile"}
+                onClick={() => setShowProfileMenu(false)}
                 className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
               >
                 <User className="size-4 text-slate-500" />
                 <span>Profile</span>
-              </button>
+              </Link>
 
-              <button
+              <Link
+                href={profile.role === "ADMIN_WILAYAH_BALI" ? "/admin/wilayah/settings" : "#"}
                 onClick={() => {
-                  onTriggerToast("Settings", "Pengaturan Akun & Keamanan Sesi");
+                  if (profile.role !== "ADMIN_WILAYAH_BALI") {
+                    onTriggerToast("Settings", "Pengaturan Akun & Keamanan Sesi");
+                  }
                   setShowProfileMenu(false);
                 }}
                 className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
               >
                 <Settings className="size-4 text-slate-500" />
                 <span>Settings</span>
-              </button>
+              </Link>
 
               <div className="border-t border-slate-100 pt-1">
                 <div className="w-full">

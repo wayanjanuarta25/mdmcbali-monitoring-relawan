@@ -15,7 +15,7 @@ export function LoginForm() {
     <form action={formAction} className="mt-8 space-y-5">
       <div className="space-y-2">
         <label className="text-sm font-semibold text-foreground" htmlFor="email">
-          Email / Username
+          Username atau Email
         </label>
         <div className="relative">
           <Mail
@@ -27,7 +27,7 @@ export function LoginForm() {
             className="h-11 w-full rounded-md border border-input bg-white pl-10 pr-3 text-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
             id="email"
             name="email"
-            placeholder="Masukkan Email atau Username"
+            placeholder="Masukkan username atau email..."
             required
             type="text"
           />
