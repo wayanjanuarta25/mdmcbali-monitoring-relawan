@@ -16,7 +16,9 @@ export const metadata: Metadata = {
   description:
     "Sistem informasi pengelolaan relawan kesiapsiagaan bencana MDMC.",
   icons: {
-    icon: "/logo-mdmc.png",
+    icon: [
+      { url: "/logo-mdmc.png", type: "image/png" },
+    ],
     shortcut: "/logo-mdmc.png",
     apple: "/logo-mdmc.png",
   },
