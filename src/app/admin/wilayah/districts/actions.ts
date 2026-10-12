@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/supabase/auth";
@@ -405,4 +405,114 @@ export async function createDistrictAction(
     };
   }
 }
+
+export async function deleteDistrictAction(
+  districtId: string,
+): Promise<ActionState> {
+  try {
+    // 1. Authorize ADMIN_WILAYAH_BALI
+    const currentAdmin = await requireRole(["ADMIN_WILAYAH_BALI"]);
+
+    const adminClient = createAdminClient();
+
+    // 2. Fetch target district
+    const { data: targetDistrict, error: districtError } = await adminClient
+      .from("districts")
+      .select("id, name, code, type")
+      .eq("id", districtId)
+      .maybeSingle();
+
+    if (districtError || !targetDistrict) {
+      return { success: false, error: "Data Kabupaten/Kota tidak ditemukan." };
+    }
+
+    // 3. Check for assigned admin(s)
+    const { data: assignedAdmins, error: adminCheckError } = await adminClient
+      .from("profiles")
+      .select("id, full_name")
+      .eq("district_id", districtId);
+
+    if (adminCheckError) {
+      return {
+        success: false,
+        error: `Gagal memeriksa relasi administrator: ${adminCheckError.message}`,
+      };
+    }
+
+    if (assignedAdmins && assignedAdmins.length > 0) {
+      const adminNames = assignedAdmins.map((a) => a.full_name).join(", ");
+      return {
+        success: false,
+        error: `Tidak dapat menghapus ${targetDistrict.name} karena masih memiliki Administrator Daerah (${adminNames}). Hapus akun administrator terlebih dahulu.`,
+      };
+    }
+
+    // 4. Check for registered volunteers
+    const { count: volunteerCount, error: volCheckError } = await adminClient
+      .from("volunteers")
+      .select("id", { count: "exact", head: true })
+      .eq("district_id", districtId);
+
+    if (volCheckError) {
+      return {
+        success: false,
+        error: `Gagal memeriksa data relawan: ${volCheckError.message}`,
+      };
+    }
+
+    if (volunteerCount && volunteerCount > 0) {
+      return {
+        success: false,
+        error: `Tidak dapat menghapus ${targetDistrict.name} karena masih memiliki ${volunteerCount} data relawan terdaftar. Pindahkan atau hapus relawan terlebih dahulu.`,
+      };
+    }
+
+    // 5. Delete the district record
+    const { error: deleteError } = await adminClient
+      .from("districts")
+      .delete()
+      .eq("id", districtId);
+
+    if (deleteError) {
+      return {
+        success: false,
+        error: `Gagal menghapus data wilayah: ${deleteError.message}`,
+      };
+    }
+
+    // 6. Record audit log
+    await adminClient.from("audit_logs").insert({
+      user_id: currentAdmin.id,
+      action: "DELETE_DISTRICT",
+      target_type: "DISTRICTS",
+      target_id: districtId,
+      description: `Menghapus Kabupaten/Kota ${targetDistrict.name} (${targetDistrict.code})`,
+    });
+
+    // 7. Revalidate caches and paths
+    try {
+      revalidateTag("districts");
+    } catch {
+      // ignore
+    }
+    revalidatePath("/admin/wilayah/districts");
+    revalidatePath("/admin/wilayah");
+    revalidatePath("/admin/wilayah/admins");
+    revalidatePath("/admin/wilayah/admins/create");
+
+    return {
+      success: true,
+      message: `Kabupaten/Kota ${targetDistrict.name} (${targetDistrict.code}) berhasil dihapus.`,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat menghapus data wilayah.",
+    };
+  }
+}
+
 

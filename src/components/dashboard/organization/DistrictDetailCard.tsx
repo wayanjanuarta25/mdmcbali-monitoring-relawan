@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Building2,
   User,
@@ -15,25 +16,51 @@ import {
   ArrowLeft,
   Activity,
   AlertTriangle,
+  Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { MockDistrictItem } from "@/data/mock/organization";
+import { DeleteDistrictDialog } from "./DeleteDistrictDialog";
+import { deleteDistrictAction } from "@/app/admin/wilayah/districts/actions";
 
 export interface DistrictDetailCardProps {
   district: MockDistrictItem;
 }
 
 export function DistrictDetailCard({ district }: DistrictDetailCardProps) {
+  const router = useRouter();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+
   const hasAdmin = Boolean(district.adminProfile);
   const admin = district.adminProfile;
   const isManaged = district.status === "ACTIVE" || hasAdmin;
 
+  const handleDeleteConfirm = async () => {
+    try {
+      setIsDeleting(true);
+      const res = await deleteDistrictAction(district.id);
+      if (res.success) {
+        router.push("/admin/wilayah/districts");
+      } else {
+        setErrorMessage(res.error || "Gagal menghapus kabupaten/kota.");
+        setIsDeleteDialogOpen(false);
+      }
+    } catch {
+      setErrorMessage("Terjadi kesalahan saat menghubungi server.");
+      setIsDeleteDialogOpen(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-300">
-      {/* NAVIGATION BACK */}
-      <div>
+      {/* NAVIGATION BACK & DELETE ACTION */}
+      <div className="flex items-center justify-between">
         <Link
           href="/admin/wilayah/districts"
           className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-[#124E8C] transition-colors"
@@ -41,7 +68,36 @@ export function DistrictDetailCard({ district }: DistrictDetailCardProps) {
           <ArrowLeft className="size-4 mr-1" />
           Kembali ke Daftar Kabupaten/Kota
         </Link>
+
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isDeleting}
+          onClick={() => {
+            setErrorMessage(null);
+            setIsDeleteDialogOpen(true);
+          }}
+          className="text-xs border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 font-semibold h-8 px-3"
+        >
+          <Trash2 className="size-3.5 mr-1.5 text-red-500" />
+          Hapus Daerah
+        </Button>
       </div>
+
+      {/* ERROR MESSAGE NOTIFICATION */}
+      {errorMessage && (
+        <div className="px-5 py-3 rounded-xl bg-red-50 text-red-800 border border-red-200 text-xs font-semibold flex items-center justify-between">
+          <span>{errorMessage}</span>
+          <button
+            type="button"
+            onClick={() => setErrorMessage(null)}
+            className="text-red-500 hover:text-red-700 font-bold ml-2 text-sm"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
 
       {/* HEADER BANNER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 rounded-2xl bg-gradient-to-r from-[#0B1F3A] via-[#124E8C] to-[#1E3A5F] p-6 sm:p-8 text-white shadow-lg">
@@ -261,6 +317,16 @@ export function DistrictDetailCard({ district }: DistrictDetailCardProps) {
           </div>
         </div>
       </div>
+
+      {/* CONFIRMATION MODAL */}
+      <DeleteDistrictDialog
+        district={district}
+        isOpen={isDeleteDialogOpen}
+        isLoading={isDeleting}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }
+

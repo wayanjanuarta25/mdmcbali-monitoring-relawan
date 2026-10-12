@@ -10,19 +10,61 @@ import {
   SearchX,
   CheckCircle2,
   ShieldAlert,
+  Trash2,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { MockDistrictItem } from "@/data/mock/organization";
+import { DeleteDistrictDialog } from "./DeleteDistrictDialog";
+import { deleteDistrictAction } from "@/app/admin/wilayah/districts/actions";
 
 export interface DistrictTableProps {
   districts: MockDistrictItem[];
 }
 
 export function DistrictTable({ districts }: DistrictTableProps) {
+  const [districtsList, setDistrictsList] = React.useState<MockDistrictItem[]>(districts);
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [districtToDelete, setDistrictToDelete] = React.useState<MockDistrictItem | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [actionMessage, setActionMessage] = React.useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
-  const filteredDistricts = districts.filter((d) => {
+  React.useEffect(() => {
+    setDistrictsList(districts);
+  }, [districts]);
+
+  const handleDeleteConfirm = async () => {
+    if (!districtToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await deleteDistrictAction(districtToDelete.id);
+      if (res.success) {
+        setDistrictsList((prev) => prev.filter((item) => item.id !== districtToDelete.id));
+        setActionMessage({
+          type: "success",
+          text: res.message || `Kabupaten/Kota ${districtToDelete.name} berhasil dihapus.`,
+        });
+        setDistrictToDelete(null);
+      } else {
+        setActionMessage({
+          type: "error",
+          text: res.error || "Gagal menghapus kabupaten/kota.",
+        });
+      }
+    } catch {
+      setActionMessage({
+        type: "error",
+        text: "Terjadi kesalahan saat menghubungi server.",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const filteredDistricts = districtsList.filter((d) => {
     const term = searchTerm.toLowerCase();
     return (
       d.name.toLowerCase().includes(term) ||
@@ -33,6 +75,25 @@ export function DistrictTable({ districts }: DistrictTableProps) {
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      {/* ACTION MESSAGE NOTIFICATION */}
+      {actionMessage && (
+        <div
+          className={`px-5 py-3 text-xs font-semibold flex items-center justify-between border-b ${
+            actionMessage.type === "success"
+              ? "bg-emerald-50 text-emerald-800 border-emerald-100"
+              : "bg-red-50 text-red-800 border-red-100"
+          }`}
+        >
+          <span>{actionMessage.text}</span>
+          <button
+            type="button"
+            onClick={() => setActionMessage(null)}
+            className="text-slate-400 hover:text-slate-600 font-bold ml-2 text-sm"
+          >
+            ×
+          </button>
+        </div>
+      )}
       {/* TABLE CONTROLS */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 border-b border-slate-100 bg-white">
         <div>
@@ -40,8 +101,8 @@ export function DistrictTable({ districts }: DistrictTableProps) {
             Daftar Wilayah Kerja MDMC Bali
           </h3>
           <p className="text-xs text-slate-500">
-            {districts.length > 0
-              ? `${districts.length} Wilayah kerja terdaftar dengan status penugasan administrator`
+            {districtsList.length > 0
+              ? `${districtsList.length} Wilayah kerja terdaftar dengan status penugasan administrator`
               : "Belum ada wilayah kerja terdaftar"}
           </p>
         </div>
@@ -53,13 +114,13 @@ export function DistrictTable({ districts }: DistrictTableProps) {
             placeholder="Cari kabupaten, kode, atau admin..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            disabled={districts.length === 0}
+            disabled={districtsList.length === 0}
             className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#124E8C]/20 focus:border-[#124E8C] disabled:opacity-50"
           />
         </div>
       </div>
 
-      {districts.length === 0 ? (
+      {districtsList.length === 0 ? (
         <div className="p-12">
           <EmptyState
             icon={<MapPin className="size-10 text-slate-300" />}
@@ -206,6 +267,21 @@ export function DistrictTable({ districts }: DistrictTableProps) {
                             Buat Admin
                           </Link>
                         )}
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isDeleting}
+                          onClick={() => {
+                            setActionMessage(null);
+                            setDistrictToDelete(district);
+                          }}
+                          className="text-xs border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 h-8 px-2.5 font-semibold"
+                          title="Hapus Kabupaten/Kota"
+                        >
+                          <Trash2 className="size-3.5 mr-1 text-red-500" />
+                          Hapus
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -215,6 +291,16 @@ export function DistrictTable({ districts }: DistrictTableProps) {
           </table>
         </div>
       )}
+
+      {/* CONFIRMATION MODAL */}
+      <DeleteDistrictDialog
+        district={districtToDelete}
+        isOpen={Boolean(districtToDelete)}
+        isLoading={isDeleting}
+        onClose={() => setDistrictToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }
+
